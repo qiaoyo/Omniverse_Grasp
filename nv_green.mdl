@@ -1,0 +1,16 @@
+
+mdl 1.4;
+import df::*;
+import base::*;
+import math::*;
+import state::*;
+import anno::*;
+import tex::*;
+import OmniPBR::OmniPBR;
+
+export material nv_green(*) = OmniPBR::OmniPBR(
+	diffuse_color_constant: color(0.181164,0.48515,0),
+	emissive_color: color(0,0,0),
+	enable_emission: true,
+	uv_space_index: 0
+);

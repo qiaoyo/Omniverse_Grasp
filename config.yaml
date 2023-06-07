@@ -1,0 +1,67 @@
+# stage_config.yaml
+
+WorldConfig:
+  width: 1920
+  height: 1080
+  sync_loads: True
+  headless: False
+  renderer: RayTracedLighting
+
+DataPath:
+  PartsPath: /home/pika/Desktop/assembled/
+  RosPath: 
+  ImagesPath: 
+  GrapsPath:
+
+# groundplane config
+GroundPlane:
+  prim: /World/GroundPlane
+  size: 500
+  z_position: 0
+  scale:
+    - 1
+    - 1
+    - 1
+  PhysicsMaterial:
+    prim: /World/Looks/Ground_PhysicsMaterial
+    dynamic_friction: 0.5
+    static_friction: 0.5
+    restitution: 0.8
+  PreviewSurface:
+    prim: /World/Looks/Ground_PreviewSurface
+    color:
+      - 0.5
+      - 0.5
+      - 0.5
+    roughness: 0.4
+    metallic: 0.4
+
+Component:
+  x_min: 0
+  x_max: 100
+  y_min: 0
+  y_max: 100
+  z_min: 50
+  z_max: 100
+  source: /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/
+  prim: /World/Assemble/
+  # position:
+  #   - 0
+  #   - 0
+  #   - 0
+  # orientation:
+  #   vector: 
+  #     - 0
+  #     - 1
+  #     - 0
+  #   theta: 90 
+  # scale: 
+  #   - 1
+  #   - 1
+  #   - 1
+  # PhysicsMaterial: 
+  #   prim: /World/Assemble/Looks/
+  #   source:  /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/Geom/
+  # PreviewSurface: 
+  #   prim: /World/Assemble/Looks/
+  #   source: /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/Rigid/

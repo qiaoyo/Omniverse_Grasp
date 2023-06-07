@@ -1,0 +1,1 @@
+# record test about rosbag record or replicator.
