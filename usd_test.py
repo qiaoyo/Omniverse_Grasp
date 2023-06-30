@@ -61,8 +61,8 @@ if __name__=="__main__":
     ground_plane=GroundPlane(prim_path="/World/ground_plane",size=500)
 
     compoment_name='056_1'
-    usd_folder='/home/pika/Desktop/assembled/56/_converted/'
-    usd_path=usd_folder+compoment_name+'.usd'
+    usd_folder='/home/pika/Desktop/assembled/056/_converted/'
+    usd_path=usd_folder+compoment_name+'_STL.usd'
     print(usd_path)
 
     stage=omni.usd.get_context().get_stage()
@@ -79,10 +79,20 @@ if __name__=="__main__":
 
     component_prim_1=stage.GetPrimAtPath("/World/Assemble_1")
 
+
+    stage = omni.usd.get_context().get_stage()
+    result, path = omni.kit.commands.execute("CreateMeshPrimCommand", prim_type="Cube")
+# Get the prim
+    cube_prim = stage.GetPrimAtPath("/Cube")
+# Enable physics on prim
+# If a tighter collision approximation is desired use convexDecomposition instead of convexHull
+    utils.setRigidBody(cube_prim, "convexHull", False)
+
+
     # the second prim
     compoment_name='056_2'
-    usd_folder='/home/pika/Desktop/assembled/56/_converted/'
-    usd_path=usd_folder+compoment_name+'.usd'
+    usd_folder='/home/pika/Desktop/assembled/056/_converted/'
+    usd_path=usd_folder+compoment_name+'_STL.usd'
     print(usd_path)
 
     stage=omni.usd.get_context().get_stage()
@@ -123,34 +133,34 @@ if __name__=="__main__":
     #     mtl_path='/World/Assemble_1/Looks/OmniPBR'
     # )
 
-    # success,result=omni.kit.commands.execute(
-    # 'CreateMdlMaterialPrimCommand',
-    # mtl_url='/home/pika/Desktop/nv_green.mdl',
-    # mtl_name='nv_green',
-    # mtl_path='/World/Assemble_1/Looks/nv_green'
-    # )
+    success,result=omni.kit.commands.execute(
+    'CreateMdlMaterialPrimCommand',
+    mtl_url='/home/pika/Desktop/nv_green.mdl',
+    mtl_name='nv_green',
+    mtl_path='/World/Assemble_1/Looks/nv_green'
+    )
 
-    # mtl_prim=stage.GetPrimAtPath('/World/Assemble_1/Looks/nv_green')
+    mtl_prim=stage.GetPrimAtPath('/World/Assemble_1/Looks/nv_green')
     
-    # omni.usd.create_material_input(
-    #     mtl_prim,
-    #     "diffuse_texture",
-    #     '/home/pika/Pictures/Screenshot from 2023-05-08 15-37-10.png',
-    #     Sdf.ValueTypeNames.Asset
-    # )
+    omni.usd.create_material_input(
+        mtl_prim,
+        "diffuse_texture",
+        '/home/pika/Desktop/mtlandtexture/Ground/textures/mulch_norm.jpg',
+        Sdf.ValueTypeNames.Asset
+    )
 
 
-    # shade=UsdShade.Material(mtl_prim)
-    # UsdShade.MaterialBindingAPI(component_prim).Bind(shade,UsdShade.Tokens.strongerThanDescendants)
+    shade=UsdShade.Material(mtl_prim)
+    UsdShade.MaterialBindingAPI(component_prim_1).Bind(shade,UsdShade.Tokens.strongerThanDescendants)
 
-    contact_report_sub=get_physx_simulation_interface().subscribe_contact_report_events(contact_report_event)
+    # contact_report_sub=get_physx_simulation_interface().subscribe_contact_report_events(contact_report_event)
 
-    contactReportAPI_1=PhysxSchema.PhysxContactReportAPI.Apply(component_prim_1)
-    contactReportAPI_2=PhysxSchema.PhysxContactReportAPI.Apply(component_prim_2)
-    contactReportAPI_1.CreateThresholdAttr().Set(200000)
-    contactReportAPI_2.CreateThresholdAttr().Set(200000)
+    # contactReportAPI_1=PhysxSchema.PhysxContactReportAPI.Apply(component_prim_1)
+    # contactReportAPI_2=PhysxSchema.PhysxContactReportAPI.Apply(component_prim_2)
+    # contactReportAPI_1.CreateThresholdAttr().Set(200000)
+    # contactReportAPI_2.CreateThresholdAttr().Set(200000)
 
-    # contactreport=ContactReportDirectAPIDemo().create(stage=stage)
+    # # contactreport=ContactReportDirectAPIDemo().create(stage=stage)
 
 
 

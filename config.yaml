@@ -1,17 +1,23 @@
 # stage_config.yaml
 
 WorldConfig:
-  width: 1920
-  height: 1080
-  sync_loads: True
-  headless: False
-  renderer: RayTracedLighting
+  width : 1920
+  height : 1080
+  sync_loads : True
+  headless : False
+  renderer : RayTracedLighting
 
 DataPath:
-  PartsPath: /home/pika/Desktop/assembled/
+  PartsPath: /home/pika/Desktop/assembled_step/
   RosPath: 
   ImagesPath: 
   GrapsPath:
+
+Camera:
+  num : 2
+  focal_length: 24
+  focus_distance: 400
+num_sim_steps: 500
 
 # groundplane config
 GroundPlane:
