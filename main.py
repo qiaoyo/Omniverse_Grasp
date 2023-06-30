@@ -9,32 +9,36 @@ import time
 from scipy.spatial.transform import Rotation as R
 import asyncio
 
-def create_background(stage,Config_yaml):
+def create_background(Config_yaml):
     from pxr import Gf,Sdf,UsdPhysics,PhysicsSchemaTools,UsdShade,UsdGeom,UsdLux,Tf,Vt,PhysxSchema   
     from omni.isaac.core.objects import GroundPlane
     from omni.isaac.core.materials import PhysicsMaterial,PreviewSurface
     from omni.isaac.core.materials import OmniPBR
 
     stage=omni.usd.get_context().get_stage()
+
     visual_material=OmniPBR(
-                        prim_path='/World/GroundPlane/visual_material',
+                        prim_path='/World/Looks/Visual_material',
                         texture_path='/home/pika/Desktop/mtlandtexture/Ground/textures/cobblestone_medieval_diff.jpg',
+                        texture_scale=np.array([0.01,0.010,0.010])
                 )
     visual_material.set_metallic_constant(0.3)
     visual_material.set_reflection_roughness(0.1)
 
+    physics_material=PhysicsMaterial(
+                                prim_path=Config_yaml['GroundPlane']['PhysicsMaterial']['prim'],
+                                dynamic_friction=Config_yaml['GroundPlane']['PhysicsMaterial']['dynamic_friction'],
+                                static_friction=Config_yaml['GroundPlane']['PhysicsMaterial']['static_friction'],
+                                restitution=Config_yaml['GroundPlane']['PhysicsMaterial']['restitution'])
+    
     ground_plane=GroundPlane(
                 prim_path=Config_yaml['GroundPlane']['prim'],
                 size=Config_yaml['GroundPlane']['size'],
                 z_position=Config_yaml['GroundPlane']['z_position'],
                 scale=np.array(Config_yaml['GroundPlane']['scale']),
                 
-                 color=np.array([1,0,0]),
-                physics_material=PhysicsMaterial(
-                                prim_path=Config_yaml['GroundPlane']['PhysicsMaterial']['prim'],
-                                dynamic_friction=Config_yaml['GroundPlane']['PhysicsMaterial']['dynamic_friction'],
-                                static_friction=Config_yaml['GroundPlane']['PhysicsMaterial']['static_friction'],
-                                restitution=Config_yaml['GroundPlane']['PhysicsMaterial']['restitution']),
+                color=np.array([1,0,0]),
+                physics_material=physics_material,
                 visual_material=visual_material
                                )
     
@@ -59,7 +63,7 @@ def create_background(stage,Config_yaml):
     # shade=UsdShade.Material(mtl_prim)
     # UsdShade.MaterialBindingAPI(ground_prim).Bind(shade,UsdShade.Tokens.strongerThanDescendants)
 
-    return True
+    return ground_plane
 
 def select_random_parts(Config_yaml,random_parts_num,target_procedure):
     PartsPath=Config_yaml['DataPath']['PartsPath']
@@ -80,26 +84,45 @@ def create_component(Config_yaml,total_parts):
     from omni.isaac.core.utils import prims
     from omni.isaac.core.utils.prims import create_prim
     from omni.isaac.core.prims import RigidPrim
+    from omni.isaac.core.materials import OmniPBR
+    from omni.isaac.core.prims import GeometryPrim, XFormPrim
     stage=omni.usd.get_context().get_stage()
+
+    visual_material=OmniPBR(
+                        prim_path='/World/GroundPlane/Looks/visual_material',
+                        texture_path='/opt/nvidia/mdl/vMaterials_2/Metal/textures/iron_pitted_steel_heat_diff.jpg',
+                        texture_scale=np.array([1,1,1])
+                )
+    visual_material.set_metallic_constant(0.3)
+    visual_material.set_reflection_roughness(0.5)
+
+
     for part in total_parts:
         part_name=part
         usd_path=Config_yaml['DataPath']['PartsPath']+part[0:3]+'/_converted/'+part
         
         position,orientation=random_six_dof(Config_yaml)
-        prim_path="/World/Parts_"+part[:-8]
+        prim_path="/World/Parts_"+part[:-4]
         print(prim_path)
-        semantic_label=part[:-8]
+        semantic_label=part[:-4]
         part_prim=prims.create_prim(
             prim_path=prim_path,
             position=position,
             orientation=orientation,
-            # scale=[1,1,1],
+            scale=[0.01,0.01,0.01],
             usd_path=usd_path,
             semantic_label=semantic_label
         )
         print(part_prim)
         part_prim=stage.GetPrimAtPath(prim_path)
+        xformprim=XFormPrim(
+            prim_path=prim_path,name='part'+semantic_label,position=position,orientation=orientation,scale=np.array([0.1,0.1,0.1]),visible=True
+        )
+        xformprim.apply_visual_material(visual_material=visual_material)
         utils.setRigidBody(part_prim,"convexHull",False)
+
+
+
         # part_rigid_prim=RigidPrim(
         #     prim_path=str(part_prim.GetPrimPath()),
         #     name="Parts_"+part[:-8]
@@ -210,21 +233,21 @@ def main():
 
     create_background(Config_yaml)
 
-    # target_procedure='056'  #0~6
+    target_procedure='056'  #0~6
 
-    # total_parts_num=12  
+    total_parts_num=10  
 
-    # procedure_parts_num=len(os.listdir(Config_yaml['DataPath']['PartsPath']+target_procedure+'/_converted/'))
+    procedure_parts_num=len(os.listdir(Config_yaml['DataPath']['PartsPath']+target_procedure+'/_converted/'))
 
-    # random_parts_num=total_parts_num-procedure_parts_num
+    random_parts_num=total_parts_num-procedure_parts_num
 
-    # procedure_parts=os.listdir(Config_yaml['DataPath']['PartsPath']+str(target_procedure)+'/_converted/')
+    procedure_parts=os.listdir(Config_yaml['DataPath']['PartsPath']+str(target_procedure)+'/_converted/')
 
-    # random_parts=select_random_parts(Config_yaml,random_parts_num,target_procedure)
+    random_parts=select_random_parts(Config_yaml,random_parts_num,target_procedure)
 
-    # total_parts=procedure_parts+random_parts
+    total_parts=procedure_parts+random_parts
 
-    # create_component(Config_yaml,total_parts)
+    create_component(Config_yaml,total_parts)
 
 
     # timeline=omni.timeline.get_timeline_interface()

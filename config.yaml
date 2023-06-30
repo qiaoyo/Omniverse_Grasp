@@ -8,7 +8,7 @@ WorldConfig:
   renderer : RayTracedLighting
 
 DataPath:
-  PartsPath: /home/pika/Desktop/assembled_step/
+  PartsPath: /home/pika/Desktop/assemble_step/
   RosPath: 
   ImagesPath: 
   GrapsPath:
@@ -22,14 +22,14 @@ num_sim_steps: 500
 # groundplane config
 GroundPlane:
   prim: /World/GroundPlane
-  size: 500
+  size: 50
   z_position: 0
   scale:
     - 1
     - 1
     - 1
   PhysicsMaterial:
-    prim: /World/Looks/Ground_PhysicsMaterial
+    prim: /World/groundPlane/PhysicsMaterial
     dynamic_friction: 0.5
     static_friction: 0.5
     restitution: 0.8
@@ -44,11 +44,11 @@ GroundPlane:
 
 Component:
   x_min: 0
-  x_max: 100
+  x_max: 50
   y_min: 0
-  y_max: 100
-  z_min: 50
-  z_max: 100
+  y_max: 50
+  z_min: 5
+  z_max: 30
   source: /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/
   prim: /World/Assemble/
   # position:
