@@ -1,28 +1,30 @@
 # stage_config.yaml
 
 WorldConfig:
-  width : 1920
-  height : 1080
+  width : 1280
+  height : 720
   sync_loads : True
   headless : False
   renderer : RayTracedLighting
 
 DataPath:
   PartsPath: /home/pika/Desktop/assemble_step/
+  OutPath: /home/pika/Desktop/assemble_step/_output_headless/
   RosPath: 
   ImagesPath: 
   GrapsPath:
-
 Camera:
-  num : 2
-  focal_length: 24
+  num : 3
+  focal_length: 38.7
   focus_distance: 400
-num_sim_steps: 500
+  width: 1280
+  height: 720
+num_sim_steps: 10
 
 # groundplane config
 GroundPlane:
   prim: /World/GroundPlane
-  size: 50
+  size: 100
   z_position: 0
   scale:
     - 1
@@ -43,10 +45,10 @@ GroundPlane:
     metallic: 0.4
 
 Component:
-  x_min: 0
-  x_max: 50
-  y_min: 0
-  y_max: 50
+  x_min: -10
+  x_max: 10
+  y_min: -10
+  y_max: 10
   z_min: 5
   z_max: 30
   source: /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/

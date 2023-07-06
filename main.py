@@ -8,6 +8,8 @@ import cv2
 import time
 from scipy.spatial.transform import Rotation as R
 import asyncio
+import math
+import shutil
 
 def create_background(Config_yaml):
     from pxr import Gf,Sdf,UsdPhysics,PhysicsSchemaTools,UsdShade,UsdGeom,UsdLux,Tf,Vt,PhysxSchema   
@@ -20,7 +22,7 @@ def create_background(Config_yaml):
     visual_material=OmniPBR(
                         prim_path='/World/Looks/Visual_material',
                         texture_path='/home/pika/Desktop/mtlandtexture/Ground/textures/cobblestone_medieval_diff.jpg',
-                        texture_scale=np.array([0.01,0.010,0.010])
+                        texture_scale=np.array([0.01,0.01,0.01])
                 )
     visual_material.set_metallic_constant(0.3)
     visual_material.set_reflection_roughness(0.1)
@@ -81,6 +83,7 @@ def select_random_parts(Config_yaml,random_parts_num,target_procedure):
 
 def create_component(Config_yaml,total_parts):
     from omni.physx.scripts import utils
+    from pxr import Gf,Sdf,UsdPhysics,PhysicsSchemaTools,UsdShade,UsdGeom,UsdLux,Tf,Vt,PhysxSchema 
     from omni.isaac.core.utils import prims
     from omni.isaac.core.utils.prims import create_prim
     from omni.isaac.core.prims import RigidPrim
@@ -88,20 +91,16 @@ def create_component(Config_yaml,total_parts):
     from omni.isaac.core.prims import GeometryPrim, XFormPrim
     stage=omni.usd.get_context().get_stage()
 
-    visual_material=OmniPBR(
-                        prim_path='/World/GroundPlane/Looks/visual_material',
-                        texture_path='/opt/nvidia/mdl/vMaterials_2/Metal/textures/iron_pitted_steel_heat_diff.jpg',
-                        texture_scale=np.array([1,1,1])
-                )
-    visual_material.set_metallic_constant(0.3)
-    visual_material.set_reflection_roughness(0.5)
-
+    i=1
+    random.shuffle(total_parts)
 
     for part in total_parts:
         part_name=part
         usd_path=Config_yaml['DataPath']['PartsPath']+part[0:3]+'/_converted/'+part
         
         position,orientation=random_six_dof(Config_yaml)
+        position[2]=i*10
+        i=i+1
         prim_path="/World/Parts_"+part[:-4]
         print(prim_path)
         semantic_label=part[:-4]
@@ -109,64 +108,103 @@ def create_component(Config_yaml,total_parts):
             prim_path=prim_path,
             position=position,
             orientation=orientation,
-            scale=[0.01,0.01,0.01],
+            scale=[0.1,0.1,0.1],
             usd_path=usd_path,
             semantic_label=semantic_label
         )
         print(part_prim)
-        part_prim=stage.GetPrimAtPath(prim_path)
-        xformprim=XFormPrim(
-            prim_path=prim_path,name='part'+semantic_label,position=position,orientation=orientation,scale=np.array([0.1,0.1,0.1]),visible=True
+        success,result=omni.kit.commands.execute(
+            'CreateMdlMaterialPrimCommand',
+            mtl_url='/home/pika/Downloads/Metals/Aluminum_Anodized.mdl',
+            mtl_name='Aluminum_Anodized',
+            mtl_path=prim_path+'/Looks/Aluminum'
         )
-        xformprim.apply_visual_material(visual_material=visual_material)
+
+        mtl_prim=stage.GetPrimAtPath(prim_path+'/Looks/Aluminum')
+    
+        shade=UsdShade.Material(mtl_prim)
+        UsdShade.MaterialBindingAPI(part_prim).Bind(shade,UsdShade.Tokens.strongerThanDescendants)
+
+        # xformprim=XFormPrim(
+        #     prim_path=prim_path,name='part'+semantic_label,position=position,orientation=orientation,scale=np.array([0.1,0.1,0.1]),visible=True
+        # )
+        # xformprim.apply_visual_material(visual_material=visual_material)
         utils.setRigidBody(part_prim,"convexHull",False)
 
+def random_camera_pose():
+    radius_range=(150,200)
+    radius_min,radius_max=radius_range
+
+    look_at_range=(-5,5)
+    look_at_min,look_at_max=look_at_range
+
+    position_range=(-0.4, .4, -0.4, 0.4)
+    x_min,x_max,y_min,y_max=position_range
+
+    r=random.uniform(radius_min,radius_max)
+    x=random.uniform(x_min,x_max)
+    y=random.uniform(y_min,y_max)
+    z=math.sqrt(1-x**2-y**2)
+    vector=np.array([x,y,z])
 
 
-        # part_rigid_prim=RigidPrim(
-        #     prim_path=str(part_prim.GetPrimPath()),
-        #     name="Parts_"+part[:-8]
-        # )
-        # part_rigid_prim.enable_rigid_body_physics()
-        # world.scene.add(part_rigid_prim)
+    look_at=np.array([
+        random.uniform(look_at_min,look_at_max),
+        random.uniform(look_at_min,look_at_max),
+        random.uniform(look_at_min,look_at_max),
+    ])
+
+    position=look_at+r*vector
+
+    return position,look_at
+
+
 
 def create_render_camera(Config_yaml):
     import omni.replicator.core as rep
     camera_num=Config_yaml['Camera']['num']
-    camera_position=np.zeros((camera_num,3))
-    camera_orientation=np.zeros((camera_num,3))
 
 
     writer=rep.WriterRegistry.get("BasicWriter")
-    output_directory='/home/pika/Desktop/assembled/_output_headless'
+    output_directory=Config_yaml['DataPath']['OutPath']
     
+
+
     writer.initialize(
         output_dir=output_directory,
         rgb=True,
         distance_to_camera=True,
+        # distance_to_image_plane=True,
         bounding_box_2d_tight=True,
         semantic_segmentation=True,
         bounding_box_3d=True,
+        occlusion=True,
+        pointcloud=True,
         normals=True
     )
 
     rep_product_list=[]
     for i in range(camera_num):
+        camera_position,camera_look_at=random_camera_pose()
         rep_camera=rep.create.camera(
             focus_distance=Config_yaml['Camera']['focus_distance'],
             focal_length=Config_yaml['Camera']['focal_length'],
             name='Camera'+str(i+1),
+            position=camera_position,
+            look_at=camera_look_at
         )
 
-        with rep_camera:
-            rep.modify.pose(
-                position= (0,0,300),#camera_position[i],
-                rotation=(0,-90,0),#camera_orientation[i]
-            )
+        # with rep_camera:
+        #     rep.modify.pose(
+        #         position= camera_position[i],
+        #         # rotation= camera_orientation[i]
+        #         look_at=camera_look_at
+        #     )
 
-        RESOLUTION=(Config_yaml['WorldConfig']['width'],Config_yaml['WorldConfig']['height'])
+        RESOLUTION=(Config_yaml['Camera']['width'],Config_yaml['Camera']['height'])
         rep_product=rep.create.render_product(rep_camera,resolution=RESOLUTION)
         rep_product_list.append(rep_product)
+
     writer.attach(rep_product_list)
 
 # def register_random():
@@ -182,7 +220,7 @@ def random_six_dof(Config_yaml):
     z_max=Config_yaml['Component']['z_max']
     position[0]=random.uniform(x_min,x_max)
     position[1]=random.uniform(y_min,y_max)
-    position[2]=random.uniform(z_min,z_max)
+    # position[2]=random.uniform(z_min,z_max)
 
     rot_vector=np.random.randn(3)
     rot_vector=rot_vector/np.linalg.norm(rot_vector)
@@ -192,6 +230,7 @@ def random_six_dof(Config_yaml):
     R_rot=R.from_matrix(rot_matrix)
     orientation=np.array(R_rot.as_quat())
 
+    print(position)
     return position,orientation
 
 
@@ -226,17 +265,20 @@ def main():
 
     UsdGeom.SetStageUpAxis(stage,UsdGeom.Tokens.z)
 
-
-    # ground=my_world.scene.add_ground_plane()
-    # PhysicsSchemaTools.addGroundPlane(stage, "/groundPlane", "Z", 2500, Gf.Vec3f(0, 0, -100), Gf.Vec3f([0.5,0.5,0.5]))
-
+    success,result=omni.kit.commands.execute(
+        'SetLightingMenuModeCommand',
+        lighting_mode='Default',
+    )
 
     create_background(Config_yaml)
 
+    output_directory=Config_yaml['DataPath']['OutPath']
+    
+    if os.path.exists(output_directory):
+        shutil.rmtree(output_directory)
+
     target_procedure='056'  #0~6
-
-    total_parts_num=10  
-
+    total_parts_num=8  
     procedure_parts_num=len(os.listdir(Config_yaml['DataPath']['PartsPath']+target_procedure+'/_converted/'))
 
     random_parts_num=total_parts_num-procedure_parts_num
@@ -250,9 +292,9 @@ def main():
     create_component(Config_yaml,total_parts)
 
 
-    # timeline=omni.timeline.get_timeline_interface()
+    timeline=omni.timeline.get_timeline_interface()
 
-    # create_render_camera(Config_yaml)
+    create_render_camera(Config_yaml)
 
 
     # my_world.start_simulation()
@@ -260,7 +302,7 @@ def main():
     # timeline.set_end_time(5.0)
 
     # timeline.set_end_time(10)
-    # timeline.play()
+
 
     # task=asyncio.ensure_future(omni.kit.app.get_app().next_update_async())
     # asyncio.ensure_future(pause_sim(timeline,task))
@@ -269,7 +311,7 @@ def main():
     # my_world.reset()
 
 
-    # num_sim_steps=Config_yaml['num_sim_steps']
+    num_sim_steps=Config_yaml['num_sim_steps']
     # print(num_sim_steps)
     # for i in range(num_sim_steps):
     #     my_world.step(render=False)
@@ -280,21 +322,21 @@ def main():
 
     # kit.update()
 
-    # timeline.play()
+    timeline.play()
     k=0
     kit.update()
     kit.update()
     kit.update()
-    while True:
-        # k+=1
-        # my_world.step()
-        # rep.orchestrator.step(pause_timeline=False)
+    while k<=num_sim_steps:
+        k+=1
+        my_world.step(render=False)
+        rep.orchestrator.step(pause_timeline=False)
         # timeline.play()
-        # if k ==10:
-        #     break
         kit.update()
-    # while True:
-    #     kit.update()
+        print(k)
+    timeline.pause()
+    while True:
+        kit.update()
     # kit.close()
 
 def test_6dof_random_parts():

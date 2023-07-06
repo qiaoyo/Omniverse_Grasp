@@ -72,7 +72,7 @@ if __name__=="__main__":
         prim_path="/World/Assemble_1",
         position=[0,0,0],
         # orientation=[0.7,0.7,0,0],
-        scale=[1,1,1],
+        scale=[0.1,0.1,0.1],
         usd_path=usd_path,
         semantic_label='056_1'
     )
@@ -135,19 +135,19 @@ if __name__=="__main__":
 
     success,result=omni.kit.commands.execute(
     'CreateMdlMaterialPrimCommand',
-    mtl_url='/home/pika/Desktop/nv_green.mdl',
-    mtl_name='nv_green',
-    mtl_path='/World/Assemble_1/Looks/nv_green'
+    mtl_url='/home/pika/Downloads/Metals/Aluminum_Anodized.mdl',
+    mtl_name='Aluminum_Anodized',
+    mtl_path='/World/Assemble_1/Looks/Aluminum'
     )
 
-    mtl_prim=stage.GetPrimAtPath('/World/Assemble_1/Looks/nv_green')
+    mtl_prim=stage.GetPrimAtPath('/World/Assemble_1/Looks/Aluminum')
     
-    omni.usd.create_material_input(
-        mtl_prim,
-        "diffuse_texture",
-        '/home/pika/Desktop/mtlandtexture/Ground/textures/mulch_norm.jpg',
-        Sdf.ValueTypeNames.Asset
-    )
+    # omni.usd.create_material_input(
+    #     mtl_prim,
+    #     "diffuse_texture",
+    #     '/home/pika/Desktop/mtlandtexture/Ground/textures/mulch_norm.jpg',
+    #     Sdf.ValueTypeNames.Asset
+    # )
 
 
     shade=UsdShade.Material(mtl_prim)
