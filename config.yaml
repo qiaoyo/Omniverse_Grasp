@@ -1,5 +1,4 @@
 # stage_config.yaml
-
 WorldConfig:
   width : 1280
   height : 720
@@ -7,21 +6,29 @@ WorldConfig:
   headless : False
   renderer : RayTracedLighting
 
+# Data load and save path
 DataPath:
-  PartsPath: /home/pika/Desktop/assemble_step/
-  OutPath: /home/pika/Desktop/assemble_step/_output_headless/
-  RosPath: 
-  ImagesPath: 
-  GrapsPath:
+  PartsPath: /home/pika/assemble_step/
+  OutPath: /home/pika/omniverse_assemble/
+  MdlPath: /home/pika/omniverse_mdl/
+  # RosPath: 
+  # ImagesPath: 
+  # GraspPath:
+
+Renderer:
+  Simulation_steps: 50
+  Render_steps: 50
+
+# Camera Config
 Camera:
   num : 3
   focal_length: 38.7
   focus_distance: 400
   width: 1280
   height: 720
-num_sim_steps: 10
 
-# groundplane config
+
+# groundplane Config
 GroundPlane:
   prim: /World/GroundPlane
   size: 100
@@ -35,15 +42,8 @@ GroundPlane:
     dynamic_friction: 0.5
     static_friction: 0.5
     restitution: 0.8
-  PreviewSurface:
-    prim: /World/Looks/Ground_PreviewSurface
-    color:
-      - 0.5
-      - 0.5
-      - 0.5
-    roughness: 0.4
-    metallic: 0.4
 
+# Component Config
 Component:
   x_min: -10
   x_max: 10
@@ -51,25 +51,28 @@ Component:
   y_max: 10
   z_min: 5
   z_max: 30
-  source: /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/
-  prim: /World/Assemble/
-  # position:
-  #   - 0
-  #   - 0
-  #   - 0
-  # orientation:
-  #   vector: 
-  #     - 0
-  #     - 1
-  #     - 0
-  #   theta: 90 
-  # scale: 
-  #   - 1
-  #   - 1
-  #   - 1
-  # PhysicsMaterial: 
-  #   prim: /World/Assemble/Looks/
-  #   source:  /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/Geom/
-  # PreviewSurface: 
-  #   prim: /World/Assemble/Looks/
-  #   source: /home/pika/.lcoal/share/ov/pkg/issac_sim-2022.2.1/Component/Rigid/
+
+# Randomization Config
+Random:
+  Camera:
+    radius_min: 100
+    radius_max: 150
+    look_at_min: -20
+    look_at_max: 20
+    x_min_norm: -0.6
+    x_max_norm: 0.6
+    y_min_norm: -0.6
+    y_max_norm: 0.6
+  Light:
+    Type: Sphere
+    Intensity:
+      Mean: 2000
+      Delta: 200
+    Position:
+      x_y_min: -50
+      x_y_max: 50
+      z_min: 50
+      z_max: 80
+    Scale:
+      min: 10
+      max: 20

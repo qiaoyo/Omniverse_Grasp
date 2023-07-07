@@ -23,7 +23,11 @@ def euler2rot(euler):
     rotation_matrix = r.as_matrix()
     return rotation_matrix
 
-
+def rotvector2eular(rotvector):
+    Rot = cv2.Rodrigues(rotvector)[0]
+    euler=rot2euler(Rot)
+    return euler
+    
 def isRotationMatrix(R):
     Rt = np.transpose(R)
     shouldBeIdentity = np.dot(Rt, R)
@@ -60,8 +64,8 @@ def rot2euler(R):
 
     return np.array([x, y, z])
 
-def rot2quat(R):
-    r3 = R.from_matrix(R)
+def rot2quat(Rot):
+    r3 = R.from_matrix(Rot)
     quat = r3.as_quat()
     # [0.7193402509298323, -1.8760855356819988e-06, -3.2748412139801076e-08, -0.694657903855333] #与原始相反,但等价
     return quat
