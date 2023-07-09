@@ -17,13 +17,13 @@ DataPath:
 
 Renderer:
   Simulation_steps: 50
-  Render_steps: 50
+  Render_steps: 10
 
 # Camera Config
 Camera:
   num : 3
   focal_length: 38.7
-  focus_distance: 400
+  focus_distance: 200
   width: 1280
   height: 720
 
@@ -55,10 +55,10 @@ Component:
 # Randomization Config
 Random:
   Camera:
-    radius_min: 100
-    radius_max: 150
-    look_at_min: -20
-    look_at_max: 20
+    radius_min: 70
+    radius_max: 100
+    look_at_min: -10
+    look_at_max: 10
     x_min_norm: -0.6
     x_max_norm: 0.6
     y_min_norm: -0.6
@@ -66,7 +66,7 @@ Random:
   Light:
     Type: Sphere
     Intensity:
-      Mean: 2000
+      Mean: 5000
       Delta: 200
     Position:
       x_y_min: -50
@@ -74,5 +74,5 @@ Random:
       z_min: 50
       z_max: 80
     Scale:
-      min: 10
-      max: 20
+      min: 50
+      max: 80

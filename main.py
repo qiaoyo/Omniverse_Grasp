@@ -146,7 +146,8 @@ def create_component(Config_yaml,total_parts):
         # xformprim.apply_visual_material(visual_material=visual_material)
         utils.setRigidBody(part_prim,"convexHull",False)
 
-def random_camera_pose(Config_yaml,num):
+def random_camera_pose(Config_yaml):
+    from omni.isaac.core.utils.prims import create_prim,get_prim_path,define_prim
     radius_min=Config_yaml['Random']['Camera']['radius_min']
     radius_max=Config_yaml['Random']['Camera']['radius_max']
 
@@ -158,41 +159,55 @@ def random_camera_pose(Config_yaml,num):
     y_min=Config_yaml['Random']['Camera']['y_min_norm']
     y_max=Config_yaml['Random']['Camera']['y_max_norm']
 
-    position=np.zeros((num,3))
-    look_at=np.zeros((num,3))
-    rotation=np.zeros((num,3))
-    for i in range(num):
-        r=random.uniform(radius_min,radius_max)
-        x=random.uniform(x_min,x_max)
-        y=random.uniform(y_min,y_max)
-        z=math.sqrt(1-x**2-y**2)
-        vector=np.array([x,y,z])
-        print(vector)
+    render_steps=Config_yaml['Renderer']['Render_steps']
+    camera_num=Config_yaml['Camera']['num']
 
-        look_at[i]=np.array([
-            random.uniform(look_at_min,look_at_max),
-            random.uniform(look_at_min,look_at_max),
-            0#random.uniform(look_at_min,look_at_max),
-        ])
+    position=np.zeros((camera_num,render_steps,3))
+    look_at=np.zeros((camera_num,render_steps,3))
+    rotation=np.zeros((camera_num,render_steps,3))
+    for i in range(camera_num):
+        for j in range(render_steps):
+            r=random.uniform(radius_min,radius_max)
+            x=random.uniform(x_min,x_max)
+            y=random.uniform(y_min,y_max)
+            z=math.sqrt(1-x**2-y**2)
+            vector=np.array([x,y,z])
+            # print(vector)
 
-        position[i]=look_at[i]+r*vector
-        orientation=look_at[i]-position[i]
-        orientation=orientation/np.linalg.norm(orientation)
-        rotation[i]=-rotvector2eular(orientation)
+            look_at[i][j]=np.array([
+                random.uniform(look_at_min,look_at_max),
+                random.uniform(look_at_min,look_at_max),
+                random.uniform(look_at_min,look_at_max),
+            ])
+
+            position[i][j]=look_at[i][j]+r*vector
+            # orientation=look_at[i][j]-position[i][j]
+            # orientation=orientation/np.linalg.norm(orientation)
+            # rotation[i][j]=-rotvector2eular(orientation)
 
     position_list=[]
     look_at_list=[]
-    rotation_list=[]
-    for i in range(num):
-        position_tuple=(float(position[i][0]),float(position[i][1]),float(position[i][2]))
-        look_at_tuple=(float(look_at[i][0]),float(look_at[i][1]),float(look_at[i][2]))
-        rotation_tuple=(float(rotation[i][0]),float(rotation[i][1]),float(rotation[i][2]))
-        # 90 degree is the original offset settings in the isaac sim.
-        position_list.append(position_tuple)
-        look_at_list.append(look_at_tuple)
-        rotation_list.append(rotation_tuple)
+    # rotation_list=[]
+    for i in range(camera_num):
+        position_list_tmp=[]
+        look_at_list_tmp=[]
+        for j in range(render_steps):
+            position_tuple=(float(position[i][j][0]),float(position[i][j][1]),float(position[i][j][2]))
 
-    return position_list,look_at_list,rotation_list
+            # look_at_prim=create_prim(
+            #     prim_path='/World/'+'Look_'+str(camera_index)+str(i),
+            #     position=look_at[i],
+            # )
+
+            look_at_tuple=(float(look_at[i][j][0]),float(look_at[i][j][1]),float(look_at[i][j][2]))
+            # rotation_tuple=(float(rotation[i][0]),float(rotation[i][1]),float(rotation[i][2]))
+            # 90 degree is the original offset settings in the isaac sim.
+            position_list_tmp.append(position_tuple)
+            look_at_list_tmp.append(look_at_tuple)
+            # rotation_list.append(rotation_tuple)
+        position_list.append(position_list_tmp)
+        look_at_list.append(look_at_list_tmp)
+    return position_list,look_at_list#,rotation_list
 
 def register_camera(Config_yaml):
     import omni.replicator.core as rep
@@ -223,7 +238,7 @@ def register_camera(Config_yaml):
             focal_length=Config_yaml['Camera']['focal_length'],
             name='Camera'+str(i+1),
             # position=(0,0,0),#camera_position,
-            # look_at=(0,0,0),#camera_look_at
+            # look_at=camera_look_at_list[i]
             # rotation=(10,10,10)
         )
         rep_camera_list.append(rep_camera)
@@ -253,6 +268,32 @@ def register_light(Config_yaml):
         return lights.node
     rep.randomizer.register(dome_lights)
 
+def register_camera_look_at(Config_yaml,camera_look_at):
+    from omni.isaac.core.utils.prims import create_prim,get_prim_path
+    import omni.replicator.core as rep
+
+    camera_num=Config_yaml['Camera']['num']
+    camera_look_at_list=[]
+
+    for i in range(camera_num):
+        camera_look_at_prim=create_prim(
+            prim_path='/World/Look_at'+str(i),
+        )
+        camera_look_at_list.append(camera_look_at_prim)
+
+    i=0
+    for prim in camera_look_at_list:
+        def get_look_at():
+            with prim:
+                rep.modify.pose(
+                    position=rep.distribution.sequence(camera_look_at[i])
+                )
+            return prim.node
+        rep.randomizer.register(get_look_at)
+        i+=1
+
+    return camera_look_at_list
+
 def random_six_dof(Config_yaml):
     position=np.zeros(3)
     # orientation=np.zeros(4)
@@ -277,7 +318,6 @@ def random_six_dof(Config_yaml):
     print(position)
     return position,orientation
 
-
 async def pause_sim(timeline,task):
     done ,pending = await asyncio.wait({task})
 
@@ -295,7 +335,7 @@ def main():
     from omni.isaac.core.utils.stage import get_current_stage,get_stage_units
     from omni.isaac.core import World
     import omni.usd
-    from omni.isaac.core.utils.prims import create_prim
+    from omni.isaac.core.utils.prims import create_prim,get_prim_at_path
     from omni.isaac.core.utils.nucleus import get_assets_root_path
     from omni.physx.scripts import utils
     from pxr import Gf,Sdf,UsdPhysics,PhysicsSchemaTools,UsdShade,UsdGeom,UsdLux,Tf,Vt,PhysxSchema
@@ -311,6 +351,10 @@ def main():
     ground_prim=create_background(Config_yaml)
     register_light(Config_yaml)
     camera_num=Config_yaml['Camera']['num']
+
+    camera_position,camera_look_at=random_camera_pose(Config_yaml)
+
+    register_camera_look_at(Config_yaml,camera_look_at)
     rep_camera_list=register_camera(Config_yaml)
     
     output_directory=Config_yaml['DataPath']['OutPath']
@@ -353,15 +397,24 @@ def main():
 
     with rep.trigger.on_frame(num_frames=render_steps):
         rep.randomizer.dome_lights()
+        rep.randomizer.get_look_at()
         for i in range(camera_num):
+            camera_position,camera_look_at,camera_rotation=random_camera_pose(Config_yaml,num=render_steps,camera_index=i)
+        
+            # with get_prim_at_path(camera_look_at_list[i]):
+            #     rep.modify.pose(
+            #         position=rep.distribution.sequence(camera_look_at)
+            #     )
+        
             with rep_camera_list[i]:
-                camera_position,camera_look_at,camera_rotation=random_camera_pose(Config_yaml,num=render_steps)
+                # camera_position,camera_look_at,camera_rotation=random_camera_pose(Config_yaml,num=render_steps,camera_index=i)
                 # print(camera_position)
                 # print(camera_look_at)
                 rep.modify.pose(
                     position= rep.distribution.sequence(camera_position),
-                    # look_at= (0,0,0)#rep.distribution.sequence(camera_look_at)
-                    rotation= rep.distribution.sequence(camera_rotation)
+                    # look_at= rep.distribution.sequence(camera_look_at),
+                    # rotation= rep.distribution.sequence(camera_rotation),
+                    # pivot = rep.distribution.sequence(camera_look_at)
                 )
 
     rep.orchestrator.run()
