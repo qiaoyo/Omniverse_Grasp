@@ -102,6 +102,7 @@ def create_component(Config_yaml,total_parts):
     from omni.isaac.core.prims import RigidPrim
     from omni.isaac.core.materials import OmniPBR
     from omni.isaac.core.prims import GeometryPrim, XFormPrim
+
     stage=omni.usd.get_context().get_stage()
 
     i=1
@@ -125,7 +126,7 @@ def create_component(Config_yaml,total_parts):
             usd_path=usd_path,
             semantic_label=semantic_label
         )
-        print(part_prim)
+        # print(part_prim)
 
         mdl_url,mdl_name=random_mtl(Config_yaml)
         success,result=omni.kit.commands.execute(
@@ -284,8 +285,52 @@ def random_six_dof(Config_yaml):
     R_rot=R.from_matrix(rot_matrix)
     orientation=np.array(R_rot.as_quat())
 
-    print(position)
+    # print(position)
     return position,orientation
+
+def save_6dof(Config_yaml,total_parts):
+    from omni.isaac.core.utils.prims import get_prim_at_path
+
+    total_parts_file=Config_yaml['DataPath']['OutPath']+'Total_Parts.txt'
+    f=open(total_parts_file,'w')
+
+    pos=[]
+    rot_im=[]
+    rot_rel=[]
+    for part in total_parts:
+        f.writelines(part[:-4]+'\n')
+        prim_path='/World/Parts_'+part[:-4]
+        part_prim=get_prim_at_path(prim_path)
+        part_tf=omni.usd.get_world_transform_matrix(part_prim)
+        part_pos=part_tf.ExtractTranslation()
+        part_rot=part_tf.ExtractRotation().GetQuaternion()
+        pos.append(part_pos)
+        rot_im.append(part_rot.GetReal())
+        rot_rel.append(part_rot.GetImaginary())
+    # print(pos,rot_im,rot_rel)
+
+    f.close()
+    np.save(Config_yaml['DataPath']['OutPath']+'Parts_Pos.npy',np.array(pos))
+    np.save(Config_yaml['DataPath']['OutPath']+'Parts_Rot_im.npy',np.array(rot_im))
+    np.save(Config_yaml['DataPath']['OutPath']+'Parts_Rot_rel.npy',np.array(rot_rel))
+    
+
+def get_camera_6dof(Config_yaml):
+    from omni.isaac.core.utils.prims import get_prim_at_path
+    Camera_num=Config_yaml['Camera']['num']
+
+    camera_pos=[]
+    camera_rot_im=[]
+    camera_rot_rel=[]
+    for i in range(Camera_num):
+        prim_path='/Replicator/Camera'+str(i+1)+'_Xform'
+        camera_prim=get_prim_at_path(prim_path)
+        camera_tf=omni.usd.get_world_transform_matrix(camera_prim)
+        camera_pos.append(camera_tf.ExtractTranslation())
+        camera_rot_im.append(camera_tf.ExtractRotation().GetQuaternion().GetReal())
+        camera_rot_rel.append(camera_tf.ExtractRotation().GetQuaternion().GetImaginary())
+    return camera_pos,camera_rot_im,camera_rot_rel
+
 
 async def pause_sim(timeline,task):
     done ,pending = await asyncio.wait({task})
@@ -301,7 +346,7 @@ def main():
 
     kit=SimulationApp(launch_config=Config_yaml['WorldConfig'])
 
-    from omni.isaac.core.utils.stage import get_current_stage,get_stage_units
+    from omni.isaac.core.utils.stage import get_current_stage,get_stage_units,save_stage
     from omni.isaac.core import World
     import omni.usd
     from omni.isaac.core.utils.prims import create_prim,get_prim_at_path
@@ -312,11 +357,12 @@ def main():
     from contactimmediate import ContactReportDirectAPIDemo
     import omni.kit.commands
     import omni.replicator.core as rep
+    import carb
 
     # Create World and get stage
     my_world=World(stage_units_in_meters=0.01)
-    stage=omni.usd.get_context().get_stage()
-    UsdGeom.SetStageUpAxis(stage,UsdGeom.Tokens.z)
+    my_stage=omni.usd.get_context().get_stage()
+    UsdGeom.SetStageUpAxis(my_stage,UsdGeom.Tokens.z)
 
     # Create BackGround and Register Light Randomizer
     ground_prim=create_background(Config_yaml)
@@ -348,6 +394,12 @@ def main():
     # Create the prim of parts and random the material
     create_component(Config_yaml,total_parts)
 
+    # Save the Original Stage
+    # default_server = carb.settings.get_settings().get("/persistent/isaac/asset_root/default")
+    # omni.usd.get_context().save_as_stage(default_server + "/Users/test/saved.usd", None)
+    # omni.usd.get_context().save_stage(None)
+    save_stage(output_directory+'Original.usd',False)
+
     # Get the timeline and Play
     timeline=omni.timeline.get_timeline_interface()
 
@@ -364,6 +416,9 @@ def main():
         step+=1
         my_world.step(render=False)
 
+    # Save the Stage After Falling
+    save_stage(output_directory+'After_Falling.usd',False)
+    save_6dof(Config_yaml,total_parts)
     # The Randomization Trigger Definition
     camera_num=Config_yaml['Camera']['num']
     with rep.trigger.on_frame(num_frames=render_steps):
@@ -375,6 +430,10 @@ def main():
         for i in range(camera_num):
             # Random the Camera Position and Look_at
             camera_position,camera_look_at=random_camera_pose(Config_yaml)
+            
+            # Save the Camera Position and Look_at 
+            np.save(output_directory+'Camera_'+str(i)+'_Position.npy',np.array(camera_position))
+            np.save(output_directory+'Camera_'+str(i)+'_Look_at.npy',np.array(camera_look_at))
 
             # Modify the Camera Position ReplicatorItem
             with camera_look_at_node_list[i]:
@@ -397,10 +456,22 @@ def main():
 
     # The Render Process
     step=0
+
+    saved_camera_pos=[]
+    saved_camera_rot_im=[]
+    saved_camera_rot_rel=[]
     while step<=render_steps:
         step+=1
         rep.orchestrator.step()
+        camera_pos,camera_rot_im,camera_rot_rel=get_camera_6dof(Config_yaml)
+        saved_camera_pos.append(camera_pos)
+        saved_camera_rot_im.append(camera_rot_im)
+        saved_camera_rot_rel.append(camera_rot_rel)
         kit.update()
+    # print(saved_camera_pos,saved_camera_rot_im,saved_camera_rot_rel)
+    np.save(output_directory+'Camera_Pos.npy',np.array(saved_camera_pos))
+    np.save(output_directory+'Camera_Rot_im.npy',np.array(saved_camera_rot_im))
+    np.save(output_directory+'Camera_Rot_rel.npy',np.array(saved_camera_rot_rel))
 
     # # Wait until stopped
 
