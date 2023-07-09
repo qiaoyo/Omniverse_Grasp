@@ -147,7 +147,6 @@ def create_component(Config_yaml,total_parts):
         utils.setRigidBody(part_prim,"convexHull",False)
 
 def random_camera_pose(Config_yaml):
-    from omni.isaac.core.utils.prims import create_prim,get_prim_path,define_prim
     radius_min=Config_yaml['Random']['Camera']['radius_min']
     radius_max=Config_yaml['Random']['Camera']['radius_max']
 
@@ -160,54 +159,37 @@ def random_camera_pose(Config_yaml):
     y_max=Config_yaml['Random']['Camera']['y_max_norm']
 
     render_steps=Config_yaml['Renderer']['Render_steps']
-    camera_num=Config_yaml['Camera']['num']
 
-    position=np.zeros((camera_num,render_steps,3))
-    look_at=np.zeros((camera_num,render_steps,3))
-    rotation=np.zeros((camera_num,render_steps,3))
-    for i in range(camera_num):
-        for j in range(render_steps):
-            r=random.uniform(radius_min,radius_max)
-            x=random.uniform(x_min,x_max)
-            y=random.uniform(y_min,y_max)
-            z=math.sqrt(1-x**2-y**2)
-            vector=np.array([x,y,z])
-            # print(vector)
+    position=np.zeros((render_steps,3))
+    look_at=np.zeros((render_steps,3))
 
-            look_at[i][j]=np.array([
-                random.uniform(look_at_min,look_at_max),
-                random.uniform(look_at_min,look_at_max),
-                random.uniform(look_at_min,look_at_max),
-            ])
+    for i in range(render_steps):
+        r=random.uniform(radius_min,radius_max)
+        x=random.uniform(x_min,x_max)
+        y=random.uniform(y_min,y_max)
+        z=math.sqrt(1-x**2-y**2)
+        vector=np.array([x,y,z])
 
-            position[i][j]=look_at[i][j]+r*vector
-            # orientation=look_at[i][j]-position[i][j]
-            # orientation=orientation/np.linalg.norm(orientation)
-            # rotation[i][j]=-rotvector2eular(orientation)
+        look_at[i]=np.array([
+            random.uniform(look_at_min,look_at_max),
+            random.uniform(look_at_min,look_at_max),
+            random.uniform(look_at_min,look_at_max),
+        ])
+
+        position[i]=look_at[i]+r*vector
 
     position_list=[]
     look_at_list=[]
-    # rotation_list=[]
-    for i in range(camera_num):
-        position_list_tmp=[]
-        look_at_list_tmp=[]
-        for j in range(render_steps):
-            position_tuple=(float(position[i][j][0]),float(position[i][j][1]),float(position[i][j][2]))
 
-            # look_at_prim=create_prim(
-            #     prim_path='/World/'+'Look_'+str(camera_index)+str(i),
-            #     position=look_at[i],
-            # )
+    for i in range(render_steps):
+        position_tuple=(float(position[i][0]),float(position[i][1]),float(position[i][2]))
+        look_at_tuple=(float(look_at[i][0]),float(look_at[i][1]),float(look_at[i][2]))
+        
+        position_list.append(position_tuple)
+        look_at_list.append(look_at_tuple)
 
-            look_at_tuple=(float(look_at[i][j][0]),float(look_at[i][j][1]),float(look_at[i][j][2]))
-            # rotation_tuple=(float(rotation[i][0]),float(rotation[i][1]),float(rotation[i][2]))
-            # 90 degree is the original offset settings in the isaac sim.
-            position_list_tmp.append(position_tuple)
-            look_at_list_tmp.append(look_at_tuple)
-            # rotation_list.append(rotation_tuple)
-        position_list.append(position_list_tmp)
-        look_at_list.append(look_at_list_tmp)
-    return position_list,look_at_list#,rotation_list
+
+    return position_list,look_at_list
 
 def register_camera(Config_yaml):
     import omni.replicator.core as rep
@@ -232,14 +214,10 @@ def register_camera(Config_yaml):
     rep_product_list=[]
     rep_camera_list=[]
     for i in range(camera_num):
-        # camera_position,camera_look_at=random_camera_pose(Config_yaml)
         rep_camera=rep.create.camera(
             focus_distance=Config_yaml['Camera']['focus_distance'],
             focal_length=Config_yaml['Camera']['focal_length'],
             name='Camera'+str(i+1),
-            # position=(0,0,0),#camera_position,
-            # look_at=camera_look_at_list[i]
-            # rotation=(10,10,10)
         )
         rep_camera_list.append(rep_camera)
 
@@ -258,7 +236,7 @@ def register_light(Config_yaml):
     z_max=Config_yaml['Random']['Light']['Position']['z_max']
     scale_min=Config_yaml['Random']['Light']['Scale']['min']
     scale_max=Config_yaml['Random']['Light']['Scale']['max']
-    def dome_lights():
+    def sphere_lights():
         lights=rep.create.light(
             light_type=Config_yaml['Random']['Light']['Type'],
             intensity=rep.distribution.normal(Config_yaml['Random']['Light']['Intensity']['Mean'],Config_yaml['Random']['Light']['Intensity']['Delta']),
@@ -266,33 +244,24 @@ def register_light(Config_yaml):
             scale=rep.distribution.uniform((scale_min,scale_min,scale_min),(scale_max,scale_max,scale_max)),
         )
         return lights.node
-    rep.randomizer.register(dome_lights)
+    rep.randomizer.register(sphere_lights)
 
-def register_camera_look_at(Config_yaml,camera_look_at):
+def register_camera_look_at(Config_yaml):
     from omni.isaac.core.utils.prims import create_prim,get_prim_path
     import omni.replicator.core as rep
 
     camera_num=Config_yaml['Camera']['num']
-    camera_look_at_list=[]
-
+    camera_look_at_node_list=[]
+    camera_look_at_prim_list=[]
     for i in range(camera_num):
         camera_look_at_prim=create_prim(
             prim_path='/World/Look_at'+str(i),
         )
-        camera_look_at_list.append(camera_look_at_prim)
+        camera_look_at_node=rep.get.prim_at_path(str(camera_look_at_prim.GetPath()))
 
-    i=0
-    for prim in camera_look_at_list:
-        def get_look_at():
-            with prim:
-                rep.modify.pose(
-                    position=rep.distribution.sequence(camera_look_at[i])
-                )
-            return prim.node
-        rep.randomizer.register(get_look_at)
-        i+=1
-
-    return camera_look_at_list
+        camera_look_at_node_list.append(camera_look_at_node)
+        camera_look_at_prim_list.append(get_prim_path(camera_look_at_prim))
+    return camera_look_at_node_list,camera_look_at_prim_list
 
 def random_six_dof(Config_yaml):
     position=np.zeros(3)
@@ -344,24 +313,26 @@ def main():
     import omni.kit.commands
     import omni.replicator.core as rep
 
+    # Create World and get stage
     my_world=World(stage_units_in_meters=0.01)
     stage=omni.usd.get_context().get_stage()
     UsdGeom.SetStageUpAxis(stage,UsdGeom.Tokens.z)
 
+    # Create BackGround and Register Light Randomizer
     ground_prim=create_background(Config_yaml)
     register_light(Config_yaml)
-    camera_num=Config_yaml['Camera']['num']
-
-    camera_position,camera_look_at=random_camera_pose(Config_yaml)
-
-    register_camera_look_at(Config_yaml,camera_look_at)
-    rep_camera_list=register_camera(Config_yaml)
     
+    # Create Camera and Register Camera_look_at Randomizer
+    rep_camera_list=register_camera(Config_yaml)
+    camera_look_at_node_list,camera_look_at_prim_list=register_camera_look_at(Config_yaml)
+    
+    # Check if the out_dir exists or not
     output_directory=Config_yaml['DataPath']['OutPath']
     
     if os.path.exists(output_directory):
         shutil.rmtree(output_directory)
 
+    # Set the target Procedure and Generate the total parts
     target_procedure='056'  #0~6
     total_parts_num=8  
     procedure_parts_num=len(os.listdir(Config_yaml['DataPath']['PartsPath']+target_procedure+'/_converted/'))
@@ -374,54 +345,57 @@ def main():
 
     total_parts=procedure_parts+random_parts
 
+    # Create the prim of parts and random the material
     create_component(Config_yaml,total_parts)
 
+    # Get the timeline and Play
     timeline=omni.timeline.get_timeline_interface()
-
-    # my_world.reset()
-
-    # # for i in range(20):
-    # #     rep.orchestrator.step()
-
-    simulation_steps=Config_yaml['Renderer']['Simulation_steps']
-    render_steps=Config_yaml['Renderer']['Render_steps']
 
     timeline.play()
     step=0
     kit.update()
     kit.update()
     
+    simulation_steps=Config_yaml['Renderer']['Simulation_steps']
+    render_steps=Config_yaml['Renderer']['Render_steps']
+
+    # The Falling Simulation Process 
     while step<=simulation_steps:
         step+=1
         my_world.step(render=False)
 
+    # The Randomization Trigger Definition
+    camera_num=Config_yaml['Camera']['num']
     with rep.trigger.on_frame(num_frames=render_steps):
-        rep.randomizer.dome_lights()
-        rep.randomizer.get_look_at()
+        
+        # The Randomization of Sphere Light
+        rep.randomizer.sphere_lights()
+        
+        i=0
         for i in range(camera_num):
-            camera_position,camera_look_at,camera_rotation=random_camera_pose(Config_yaml,num=render_steps,camera_index=i)
-        
-            # with get_prim_at_path(camera_look_at_list[i]):
-            #     rep.modify.pose(
-            #         position=rep.distribution.sequence(camera_look_at)
-            #     )
-        
+            # Random the Camera Position and Look_at
+            camera_position,camera_look_at=random_camera_pose(Config_yaml)
+
+            # Modify the Camera Position ReplicatorItem
+            with camera_look_at_node_list[i]:
+                rep.modify.pose(
+                    position=rep.distribution.sequence(camera_look_at)
+                )
+            
+            # Modify the Camera Look_at ReplicatorItem
             with rep_camera_list[i]:
-                # camera_position,camera_look_at,camera_rotation=random_camera_pose(Config_yaml,num=render_steps,camera_index=i)
-                # print(camera_position)
-                # print(camera_look_at)
                 rep.modify.pose(
                     position= rep.distribution.sequence(camera_position),
-                    # look_at= rep.distribution.sequence(camera_look_at),
-                    # rotation= rep.distribution.sequence(camera_rotation),
-                    # pivot = rep.distribution.sequence(camera_look_at)
+                    look_at= rep.distribution.sequence(camera_look_at_prim_list),
                 )
 
     rep.orchestrator.run()
+
     # Wait until started
     while not rep.orchestrator.get_is_started():
         kit.update()
 
+    # The Render Process
     step=0
     while step<=render_steps:
         step+=1
@@ -429,18 +403,18 @@ def main():
         kit.update()
 
     # # Wait until stopped
-    # while rep.orchestrator.get_is_started():
-    #     kit.update()
 
     rep.BackendDispatch.wait_until_done()
     rep.orchestrator.stop()
 
-
+    # Pause the Timeline
     timeline.pause()
 
+    # Keep the Simulation App
     while True:
         kit.update()
 
+    # Close the Simulation App
     # kit.close()
 
 def test_6dof_random_parts():
