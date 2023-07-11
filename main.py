@@ -11,6 +11,7 @@ import asyncio
 import math
 import shutil
 from quarternion import *
+import argparse
 
 def random_ground(Config_yaml):
     from omni.isaac.core.materials import OmniPBR
@@ -104,7 +105,7 @@ def create_component(Config_yaml,total_parts):
     from omni.isaac.core.prims import GeometryPrim, XFormPrim
 
     stage=omni.usd.get_context().get_stage()
-
+    PartsPath=Config_yaml['DataPath']['PartsPath']
     i=1
     random.shuffle(total_parts)
 
@@ -118,11 +119,13 @@ def create_component(Config_yaml,total_parts):
         prim_path="/World/Parts_"+part[:-4]
         print(prim_path)
         semantic_label=part[:-4]
+        part_scale=np.load(PartsPath+part[0:3]+'/scale.npy')[int(part[4])-1]
+        part_scale=float(np.random.normal(part_scale,0.02,1))
         part_prim=prims.create_prim(
             prim_path=prim_path,
             position=position,
             orientation=orientation,
-            scale=[0.1,0.1,0.1],
+            scale=[part_scale,part_scale,part_scale],
             usd_path=usd_path,
             semantic_label=semantic_label
         )
@@ -192,12 +195,12 @@ def random_camera_pose(Config_yaml):
 
     return position_list,look_at_list
 
-def register_camera(Config_yaml):
+def register_camera(Config_yaml,args):
     import omni.replicator.core as rep
     camera_num=Config_yaml['Camera']['num']
 
     writer=rep.WriterRegistry.get("BasicWriter")
-    output_directory=Config_yaml['DataPath']['OutPath']
+    output_directory=Config_yaml['DataPath']['OutPath']+args.path+'/'
     
     writer.initialize(
         output_dir=output_directory,
@@ -208,7 +211,7 @@ def register_camera(Config_yaml):
         semantic_segmentation=True,
         bounding_box_3d=True,
         occlusion=True,
-        pointcloud=True,
+        # pointcloud=True,
         normals=True
     )
 
@@ -288,10 +291,10 @@ def random_six_dof(Config_yaml):
     # print(position)
     return position,orientation
 
-def save_6dof(Config_yaml,total_parts):
+def save_6dof(Config_yaml,args,total_parts):
     from omni.isaac.core.utils.prims import get_prim_at_path
 
-    total_parts_file=Config_yaml['DataPath']['OutPath']+'Total_Parts.txt'
+    total_parts_file=Config_yaml['DataPath']['OutPath']+args.path+'/Total_Parts.txt'
     f=open(total_parts_file,'w')
 
     pos=[]
@@ -310,11 +313,10 @@ def save_6dof(Config_yaml,total_parts):
     # print(pos,rot_im,rot_rel)
 
     f.close()
-    np.save(Config_yaml['DataPath']['OutPath']+'Parts_Pos.npy',np.array(pos))
-    np.save(Config_yaml['DataPath']['OutPath']+'Parts_Rot_im.npy',np.array(rot_im))
-    np.save(Config_yaml['DataPath']['OutPath']+'Parts_Rot_rel.npy',np.array(rot_rel))
+    np.save(Config_yaml['DataPath']['OutPath']+args.path+'/Parts_Pos.npy',np.array(pos))
+    np.save(Config_yaml['DataPath']['OutPath']+args.path+'/Parts_Rot_im.npy',np.array(rot_im))
+    np.save(Config_yaml['DataPath']['OutPath']+args.path+'/Parts_Rot_rel.npy',np.array(rot_rel))
     
-
 def get_camera_6dof(Config_yaml):
     from omni.isaac.core.utils.prims import get_prim_at_path
     Camera_num=Config_yaml['Camera']['num']
@@ -330,7 +332,6 @@ def get_camera_6dof(Config_yaml):
         camera_rot_im.append(camera_tf.ExtractRotation().GetQuaternion().GetReal())
         camera_rot_rel.append(camera_tf.ExtractRotation().GetQuaternion().GetImaginary())
     return camera_pos,camera_rot_im,camera_rot_rel
-
 
 async def pause_sim(timeline,task):
     done ,pending = await asyncio.wait({task})
@@ -359,28 +360,43 @@ def main():
     import omni.replicator.core as rep
     import carb
 
+    parser=argparse.ArgumentParser(description='Parser')
+    parser.add_argument('-t','--target',type=str,help='Target procedure')
+    parser.add_argument('-n','--number',type=int,help='Number of the total parts')
+    parser.add_argument('-p','--path',type=str,help='Path to save the data')
+    
+    args=parser.parse_args()
+    
     # Create World and get stage
     my_world=World(stage_units_in_meters=0.01)
     my_stage=omni.usd.get_context().get_stage()
     UsdGeom.SetStageUpAxis(my_stage,UsdGeom.Tokens.z)
+
+
+    success,result=omni.kit.commands.execute(
+        'SetLightingMenuModeCommand',
+        lighting_mode='Default',
+    )
 
     # Create BackGround and Register Light Randomizer
     ground_prim=create_background(Config_yaml)
     register_light(Config_yaml)
     
     # Create Camera and Register Camera_look_at Randomizer
-    rep_camera_list=register_camera(Config_yaml)
+    rep_camera_list=register_camera(Config_yaml,args)
     camera_look_at_node_list,camera_look_at_prim_list=register_camera_look_at(Config_yaml)
     
     # Check if the out_dir exists or not
-    output_directory=Config_yaml['DataPath']['OutPath']
+    # output_directory=Config_yaml['DataPath']['OutPath']
     
-    if os.path.exists(output_directory):
-        shutil.rmtree(output_directory)
+    # if os.path.exists(output_directory):
+    #     shutil.rmtree(output_directory)
+
+    output_directory=Config_yaml['DataPath']['OutPath']+args.path+'/'
 
     # Set the target Procedure and Generate the total parts
-    target_procedure='056'  #0~6
-    total_parts_num=8  
+    target_procedure=args.target #0~6
+    total_parts_num=args.number
     procedure_parts_num=len(os.listdir(Config_yaml['DataPath']['PartsPath']+target_procedure+'/_converted/'))
 
     random_parts_num=total_parts_num-procedure_parts_num
@@ -418,7 +434,7 @@ def main():
 
     # Save the Stage After Falling
     save_stage(output_directory+'After_Falling.usd',False)
-    save_6dof(Config_yaml,total_parts)
+    save_6dof(Config_yaml,args,total_parts)
     # The Randomization Trigger Definition
     camera_num=Config_yaml['Camera']['num']
     with rep.trigger.on_frame(num_frames=render_steps):
@@ -482,11 +498,11 @@ def main():
     timeline.pause()
 
     # Keep the Simulation App
-    while True:
-        kit.update()
+    # while True:
+    #     kit.update()
 
     # Close the Simulation App
-    # kit.close()
+    kit.close()
 
 def test_6dof_random_parts():
     with open('./config.yaml') as Config_file:

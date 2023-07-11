@@ -3,7 +3,7 @@ WorldConfig:
   width : 1280
   height : 720
   sync_loads : True
-  headless : False
+  headless : True
   renderer : RayTracedLighting
 
 # Data load and save path
@@ -17,11 +17,11 @@ DataPath:
 
 Renderer:
   Simulation_steps: 50
-  Render_steps: 10
+  Render_steps: 32
 
 # Camera Config
 Camera:
-  num : 3
+  num : 8
   focal_length: 38.7
   focus_distance: 200
   width: 1280
@@ -55,14 +55,14 @@ Component:
 # Randomization Config
 Random:
   Camera:
-    radius_min: 70
-    radius_max: 100
+    radius_min: 150
+    radius_max: 200
     look_at_min: -10
     look_at_max: 10
-    x_min_norm: -0.6
-    x_max_norm: 0.6
-    y_min_norm: -0.6
-    y_max_norm: 0.6
+    x_min_norm: -0.5
+    x_max_norm: 0.5
+    y_min_norm: -0.5
+    y_max_norm: 0.5
   Light:
     Type: Sphere
     Intensity:
@@ -74,5 +74,5 @@ Random:
       z_min: 50
       z_max: 80
     Scale:
-      min: 50
-      max: 80
+      min: 100
+      max: 200
