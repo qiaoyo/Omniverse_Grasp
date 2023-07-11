@@ -71,8 +71,8 @@ Random:
     Position:
       x_y_min: -50
       x_y_max: 50
-      z_min: 50
-      z_max: 80
+      z_min: 100
+      z_max: 150
     Scale:
       min: 100
       max: 200

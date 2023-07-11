@@ -372,11 +372,11 @@ def main():
     my_stage=omni.usd.get_context().get_stage()
     UsdGeom.SetStageUpAxis(my_stage,UsdGeom.Tokens.z)
 
-
-    success,result=omni.kit.commands.execute(
-        'SetLightingMenuModeCommand',
-        lighting_mode='Default',
-    )
+    # add a Default Light
+    # success,result=omni.kit.commands.execute(
+    #     'SetLightingMenuModeCommand',
+    #     lighting_mode='Default',
+    # )
 
     # Create BackGround and Register Light Randomizer
     ground_prim=create_background(Config_yaml)
@@ -387,12 +387,11 @@ def main():
     camera_look_at_node_list,camera_look_at_prim_list=register_camera_look_at(Config_yaml)
     
     # Check if the out_dir exists or not
-    # output_directory=Config_yaml['DataPath']['OutPath']
-    
-    # if os.path.exists(output_directory):
-    #     shutil.rmtree(output_directory)
 
     output_directory=Config_yaml['DataPath']['OutPath']+args.path+'/'
+    
+    if os.path.exists(output_directory):
+        shutil.rmtree(output_directory)
 
     # Set the target Procedure and Generate the total parts
     target_procedure=args.target #0~6
