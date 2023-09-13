@@ -7,7 +7,9 @@ import omni
 from omni.isaac.kit import SimulationApp
 import yaml
 import torch
-
+from main import random_six_dof
+from quarternion import *
+np.set_printoptions(precision=3,suppress=False)
 def contact_report_event(contact_headers,contact_data):
     for contact_header in contact_headers:
             print("Got contact header type: " + str(contact_header.type))
@@ -40,7 +42,7 @@ if __name__=="__main__":
 
     # with open('/home/pika/.local/share/ov/pkg/isaac_sim-2022.2.1/assemble/config.yaml') as f:
     #     config=yaml.load(f)
-    
+
     kit=SimulationApp(launch_config=CONFIG)
 
     from omni.isaac.core.utils.stage import get_current_stage,get_stage_units
@@ -60,67 +62,76 @@ if __name__=="__main__":
     my_world=World(stage_units_in_meters=0.01)
     ground_plane=GroundPlane(prim_path="/World/ground_plane",size=500)
 
-    compoment_name='056_1'
-    usd_folder='/home/pika/Desktop/assembled/056/_converted/'
-    usd_path=usd_folder+compoment_name+'_STL.usd'
+    compoment_name='001_1'
+    usd_folder='/home/pika/assemble_step/001/_converted/'
+    usd_path=usd_folder+compoment_name+'.usd'
     print(usd_path)
 
     stage=omni.usd.get_context().get_stage()
 
+    with open('/home/pika/.local/share/ov/pkg/isaac_sim-2022.2.1/Omniverse_Grasp/config.yaml') as Config_file:
+        Config_yaml=yaml.load(Config_file,Loader=yaml.FullLoader)
+
+    position,rotation=random_six_dof(Config_yaml)
+    print(position,rotation)
 
     create_prim(
         prim_path="/World/Assemble_1",
-        position=[0,0,0],
-        # orientation=[0.7,0.7,0,0],
+        position=[10,1,1],
+        orientation=[0.8191520481182802 , 0.12516463863621627 , 0.25032927727243254 , 0.5006585545448652],
         scale=[0.1,0.1,0.1],
         usd_path=usd_path,
-        semantic_label='056_1'
+        semantic_label='001_1'
     )
 
     component_prim_1=stage.GetPrimAtPath("/World/Assemble_1")
 
 
-    stage = omni.usd.get_context().get_stage()
-    result, path = omni.kit.commands.execute("CreateMeshPrimCommand", prim_type="Cube")
+    # stage = omni.usd.get_context().get_stage()
+    # result, path = omni.kit.commands.execute("CreateMeshPrimCommand", prim_type="Cube")
 # Get the prim
-    cube_prim = stage.GetPrimAtPath("/Cube")
+    # cube_prim = stage.GetPrimAtPath("/Cube")
 # Enable physics on prim
 # If a tighter collision approximation is desired use convexDecomposition instead of convexHull
-    utils.setRigidBody(cube_prim, "convexHull", False)
+    # utils.setRigidBody(cube_prim, "convexHull", False)
 
 
     # the second prim
-    compoment_name='056_2'
-    usd_folder='/home/pika/Desktop/assembled/056/_converted/'
-    usd_path=usd_folder+compoment_name+'_STL.usd'
-    print(usd_path)
+    # compoment_name='056_2'
+    # usd_folder='/home/pika/Desktop/assembled/056/_converted/'
+    # usd_path=usd_folder+compoment_name+'_STL.usd'
+    # print(usd_path)
 
-    stage=omni.usd.get_context().get_stage()
-    UsdGeom.SetStageUpAxis(stage,UsdGeom.Tokens.z)
-    UsdGeom.SetStageMetersPerUnit(stage,0.01)
+    # stage=omni.usd.get_context().get_stage()
+    # UsdGeom.SetStageUpAxis(stage,UsdGeom.Tokens.z)
+    # UsdGeom.SetStageMetersPerUnit(stage,0.01)
 
-    create_prim(
-        prim_path="/World/Assemble_2",
-        position=[0,0,0],
-        # orientation=[0.7,0.7,0,0],
-        scale=[1,1,1],
-        usd_path=usd_path,
-        semantic_label='056_2'
-    )
+    # create_prim(
+    #     prim_path="/World/Assemble_2",
+    #     position=[0,0,0],
+    #     # orientation=[0.7,0.7,0,0],
+    #     scale=[1,1,1],
+    #     usd_path=usd_path,
+    #     semantic_label='056_2'
+    # )
 
-    component_prim_2=stage.GetPrimAtPath("/World/Assemble_2")
+    # component_prim_2=stage.GetPrimAtPath("/World/Assemble_2")
 
 
 
-    # xform=UsdGeom.Xformable(component_prim)
+    # xform=UsdGeom.Xformable(component_prim_1)
     # transform=xform.AddTransformOp()
     # mat=Gf.Matrix4d()
-    # mat.SetTranslateOnly(Gf.Vec3d(10,1,1))
-    # mat.SetRotateOnly(Gf.Rotation(Gf.Vec3d(0,1,0),290))
+    # mat.SetTranslateOnly(Gf.Vec3d(10, 1, 1))
+
+    # vector=[1,2,4]
+    # vector=vector/np.linalg.norm(vector)
+    # print(vector)
+    # mat.SetRotateOnly(Gf.Rotation(Gf.Vec3d(vector[0],vector[1],vector[2]),70))
     # transform.Set(mat)
 
-    utils.setRigidBody(component_prim_1,"convexHull",False)
-    utils.setRigidBody(component_prim_2,"convexHull",False)
+    # utils.setRigidBody(component_prim_1,"convexHull",False)
+    # utils.setRigidBody(component_prim_2,"convexHull",False)
 
     # mass_api=UsdPhysics.MassAPI.Apply(component_prim)
     # mass_api.CreateMassAttr(10)
@@ -133,15 +144,15 @@ if __name__=="__main__":
     #     mtl_path='/World/Assemble_1/Looks/OmniPBR'
     # )
 
-    success,result=omni.kit.commands.execute(
-    'CreateMdlMaterialPrimCommand',
-    mtl_url='/home/pika/Downloads/Metals/Aluminum_Anodized.mdl',
-    mtl_name='Aluminum_Anodized',
-    mtl_path='/World/Assemble_1/Looks/Aluminum'
-    )
+    # success,result=omni.kit.commands.execute(
+    # 'CreateMdlMaterialPrimCommand',
+    # mtl_url='/home/pika/Downloads/Metals/Aluminum_Anodized.mdl',
+    # mtl_name='Aluminum_Anodized',
+    # mtl_path='/World/Assemble_1/Looks/Aluminum'
+    # )
 
-    mtl_prim=stage.GetPrimAtPath('/World/Assemble_1/Looks/Aluminum')
-    
+    # mtl_prim=stage.GetPrimAtPath('/World/Assemble_1/Looks/Aluminum')
+
     # omni.usd.create_material_input(
     #     mtl_prim,
     #     "diffuse_texture",
@@ -150,8 +161,8 @@ if __name__=="__main__":
     # )
 
 
-    shade=UsdShade.Material(mtl_prim)
-    UsdShade.MaterialBindingAPI(component_prim_1).Bind(shade,UsdShade.Tokens.strongerThanDescendants)
+    # shade=UsdShade.Material(mtl_prim)
+    # UsdShade.MaterialBindingAPI(component_prim_1).Bind(shade,UsdShade.Tokens.strongerThanDescendants)
 
     # contact_report_sub=get_physx_simulation_interface().subscribe_contact_report_events(contact_report_event)
 
@@ -167,5 +178,35 @@ if __name__=="__main__":
     kit.update()
     kit.update()
 
+    pose = omni.usd.utils.get_world_transform_matrix(component_prim_1)
+    pose[0]=pose[0]*10
+    pose[1]=pose[1]*10
+    pose[2]=pose[2]*10
+    pose[3][0]=pose[3][0]*10
+    pose[3][1]=pose[3][1]*10
+    pose[3][2]=pose[3][2]*10
+
+    print("Matrix Form:", pose)
+
+    print("Translation: ", pose.ExtractTranslation())
+
+    temp=pose.ExtractRotation()
+    print(temp)
+    q = pose.ExtractRotation().GetQuaternion()
+
+    print(
+
+        "Rotation: ", q.GetReal(), ",", q.GetImaginary()[0], ",", q.GetImaginary()[1], ",", q.GetImaginary()[2]
+
+    )
+    print()
+
+
+    pose=omni.usd.get_local_transform_SRT(component_prim_1)
+    print(pose)
+    print()
+    pose=omni.usd.get_local_transform_matrix(component_prim_1)
+    print(pose)
+    print(quaternion2euler([ q.GetImaginary()[0], q.GetImaginary()[1], q.GetImaginary()[2],q.GetReal()]))
     while True:
         kit.update()

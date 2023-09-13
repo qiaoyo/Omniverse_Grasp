@@ -3,26 +3,26 @@ WorldConfig:
   width : 1280
   height : 720
   sync_loads : True
-  headless : True
+  headless : False
   renderer : RayTracedLighting
 
 # Data load and save path
 DataPath:
   PartsPath: /home/pika/assemble_step/
-  OutPath: /home/pika/omniverse_assemble/
+  OutPath: /media/pika/Joyoyo/temp/
   MdlPath: /home/pika/omniverse_mdl/
   # RosPath: 
   # ImagesPath: 
   # GraspPath:
 
 Renderer:
-  Simulation_steps: 50
-  Render_steps: 32
+  Simulation_steps: 100
+  Render_steps: 6
 
 # Camera Config
 Camera:
-  num : 8
-  focal_length: 38.7
+  num : 5
+  focal_length: 66
   focus_distance: 200
   width: 1280
   height: 720
@@ -55,8 +55,8 @@ Component:
 # Randomization Config
 Random:
   Camera:
-    radius_min: 150
-    radius_max: 200
+    radius_min: 300
+    radius_max: 350
     look_at_min: -10
     look_at_max: 10
     x_min_norm: -0.5

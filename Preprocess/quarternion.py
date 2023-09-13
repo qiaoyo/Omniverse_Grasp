@@ -2,38 +2,50 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import math
+from autolab_core import RigidTransform
 
 def rotvector2rot(rotvector):
     Rm = cv2.Rodrigues(rotvector)[0]
     return Rm
 
+
 def quaternion2euler(quaternion):
-    #'xyz'
+    # 'xyz'
     r = R.from_quat(quaternion)
     euler = r.as_euler('xyz', degrees=True)
     return euler
+
 
 def euler2quaternion(euler):
     r = R.from_euler('xyz', euler, degrees=True)
     quaternion = r.as_quat()
     return quaternion
 
+
+def rotvector2quan(rotvector):
+    Rm = cv2.Rodrigues(rotvector)[0]
+    quan=rot2quat(Rm)
+    return quan
+
 def euler2rot(euler):
     r = R.from_euler('xyz', euler, degrees=True)
     rotation_matrix = r.as_matrix()
     return rotation_matrix
 
+
 def rotvector2eular(rotvector):
     Rot = cv2.Rodrigues(rotvector)[0]
-    euler=rot2euler(Rot)
+    euler = rot2euler(Rot)
     return euler
-    
+
+
 def isRotationMatrix(R):
     Rt = np.transpose(R)
     shouldBeIdentity = np.dot(Rt, R)
     I = np.identity(3, dtype=R.dtype)
     n = np.linalg.norm(I - shouldBeIdentity)
     return n < 1e-6
+
 
 def quat2rot(quaternion):
     r = R.from_quat(quaternion)
@@ -45,6 +57,7 @@ def quat2rot(quaternion):
     # 符号相反的四元数, 仍表示同一个旋转
     # Rq1 = [0.71934025092983234, -1.876085535681999e-06, -3.274841213980097e-08, -0.69465790385533299]
     return Rm
+
 
 def rot2euler(R):
     assert (isRotationMatrix(R))
@@ -64,15 +77,32 @@ def rot2euler(R):
 
     return np.array([x, y, z])
 
+
 def rot2quat(Rot):
     r3 = R.from_matrix(Rot)
     quat = r3.as_quat()
     # [0.7193402509298323, -1.8760855356819988e-06, -3.2748412139801076e-08, -0.694657903855333] #与原始相反,但等价
     return quat
 
-if __name__=='__main__':
+def test_rot_vec():
+    a=np.random.randn(3)
+    print(a)
+    translate=np.array([10,1,1])
+    vector=np.array([1,2,4])
+    vector=vector/np.linalg.norm(vector)
+    rot_vector=70*np.pi/180*vector
+    rot_matrix=rotvector2rot(rot_vector)
+    T=RigidTransform(rot_matrix,translate)
+    print(T)
+    print(T.matrix)
+    quat=rot2quat(rot_matrix)
+    print(quat)
+    euler=quaternion2euler(quat)
+    print(quaternion2euler(quat))
+    print(euler2quaternion(euler))
+    print(rot2euler(rot_matrix))
 
-
+if __name__ == '__main__':
     rotvector = np.array([[0.223680285784755, 0.240347886848190, 0.176566110650535]])
     print(rotvector2rot(rotvector))
 
@@ -81,16 +111,14 @@ if __name__=='__main__':
     #  [ 0.19907538  0.95986385 -0.19756111]
     #  [-0.21529982  0.23950919  0.94672136]]
 
-
     quaternion = [0.03551, 0.21960, -0.96928, 0.10494]
     print(quaternion2euler(quaternion))
 
     # 输出
     # [ -24.90053735    6.599459   -169.1003646 ]
 
-
-    euler = [-24.90053735, 6.599459, -169.1003646]
-    print(euler2quaternion(euler))
+    euler = [ 22.5021,   0.,     -23.8785]
+    print(euler2rot(euler))
 
     # 输出
     # [ 0.03550998  0.21959986 -0.9692794   0.10493993]
