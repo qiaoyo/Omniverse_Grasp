@@ -1,9 +1,9 @@
 # stage_config.yaml
 WorldConfig:
-  width : 1280
-  height : 720
+  width : 640
+  height : 480
   sync_loads : True
-  headless : False
+  headless : True
   renderer : RayTracedLighting
 
 # Data load and save path
@@ -17,15 +17,15 @@ DataPath:
 
 Renderer:
   Simulation_steps: 100
-  Render_steps: 6
+  Render_steps: 8
 
 # Camera Config
 Camera:
-  num : 5
+  num : 8
   focal_length: 66
   focus_distance: 200
-  width: 1280
-  height: 720
+  width: 640
+  height: 480
 
 
 # groundplane Config

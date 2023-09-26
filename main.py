@@ -166,7 +166,7 @@ def register_camera(Config_yaml,args):
         semantic_segmentation=True,
         bounding_box_3d=True,
         occlusion=True,
-        pointcloud=True,
+        # pointcloud=True,
         normals=True
     )
     rep_product_list=[]
@@ -279,7 +279,7 @@ def get_camera_6dof(Config_yaml):
 if __name__=='__main__':
 
 
-    with open('/home/pika/.local/share/ov/pkg/isaac_sim-2022.2.0/Omniverse_Grasp/config.yaml') as Config_file:
+    with open('/home/pika/.local/share/ov/pkg/isaac_sim-2022.2.1/Omniverse_Grasp/config.yaml') as Config_file:
         Config_yaml=yaml.load(Config_file,Loader=yaml.FullLoader)
 
     kit=SimulationApp(launch_config=Config_yaml['WorldConfig'])
@@ -339,7 +339,6 @@ if __name__=='__main__':
     random_parts=select_random_parts(Config_yaml,random_parts_num,target_procedure)
 
     total_parts=procedure_parts+random_parts
-
     # Create the prim of parts and random the material
     create_component(Config_yaml,total_parts)
 
@@ -435,11 +434,11 @@ if __name__=='__main__':
     timeline.pause()
 
     # Keep the Simulation App
-    while True:
-        kit.update()
+    # while True:
+    #     kit.update()
 
     # Close the Simulation App
-    # kit.close()
+    kit.close()
 
 # def test_6dof_random_parts():
 #     with open('./config.yaml') as Config_file:

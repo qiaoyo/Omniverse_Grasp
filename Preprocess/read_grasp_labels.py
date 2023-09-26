@@ -107,12 +107,13 @@ def get_scene_grasp(mesh_list,grasp_npy,camera_pos,camera_rot_im,camera_rot_real
             temp=np.array([0,0,0,1]).reshape(1,1,4).repeat(mesh2grasp_rot_trans.shape[0],axis=0)
             mesh2grasp_T=np.concatenate((mesh2grasp_rot_trans,temp),axis=1)
 
-            # print(mesh2grasp_T.shape,mesh2grasp_T[0])
+            print(mesh2grasp_T.shape,mesh2grasp_T[0])
 
             camera2mesh_T=np.matmul(camera2world_T,world2mesh_T)
             camera2mesh_trans=camera2mesh_T[0:3,3]
 
             camera2grasp_T=np.matmul(np.matmul(camera2world_T,world2mesh_T),mesh2grasp_T)
+            print(camera2grasp_T.shape)
             camera2grasp_rot=camera2grasp_T[:,0:3,0:3]
             camera2grasp_trans=camera2grasp_T[:,0:3,3].reshape(-1,3)
 
@@ -329,7 +330,20 @@ def show_pc_mlab(points,type='background'):
     mlab.points3d(points[:, 0], points[:, 1], points[:, 2], color=color, scale_factor=0.004)
     # mlab.points3d(points[:,0],points[:,1],points[:,2],color,scale_factor=0.004)
 
+
+
 if __name__=='__main__':
+
+    # grasp_npy=np.load(grasp_path+'default_'+mesh_name+'_140.npy')
+    # grasp_npy=grasp_npy[grasp_npy[:,-2]<=0.4]
+    # grasp_center = grasp_npy[:,0:3]
+    # grasp_axis = grasp_npy[:,3:6]
+    # grasp_width = grasp_npy[:,6]
+    # grasp_angle = grasp_npy[:,7]
+    # grasp_jaw_width = grasp_npy[:,8]
+    # grasp_min_width = grasp_npy[:,9]
+    # grasp_force_closure = grasp_npy[:,10]
+    # grasp_canny_quality = grasp_npy[:,11]
     grasp_path='/home/pika/good_grasp/'
     obj_path='/home/pika/assemble_scale_grasp_001/'
     scene_path='/media/pika/Joyoyo/temp/1/'
@@ -352,7 +366,7 @@ if __name__=='__main__':
 
     part_list=np.loadtxt(scene_path+'Total_Parts.txt',dtype='str')
     print(part_list)
-    # grasp_center,bottom_center,grasp_pose,grasp_score,local_hand_point,local_hand_point_extend,hand_point=get_scene_grasp(part_list,grasp_npy,camera_pos,camera_rot_im,camera_rot_real,part_pos,part_rot_im,part_rot_real)
+    grasp_center,bottom_center,grasp_pose,grasp_score,local_hand_point,local_hand_point_extend,hand_point=get_scene_grasp(part_list,grasp_npy,camera_pos,camera_rot_im,camera_rot_real,part_pos,part_rot_im,part_rot_real)
 
     random_index = 0
     camera_index = 0
